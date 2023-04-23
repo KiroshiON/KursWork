@@ -1,17 +1,24 @@
 package org.example;
+
+import org.example.*;
 import javax.swing.*;
-import java.sql.*;
-import java.sql.Statement;
-import java.sql.SQLException;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.*;
+import java.util.List;
+
+
 
 public class DBApplication extends JFrame{
 
     private String url = "jdbc:postgresql://localhost:5432/NS";
     private String user = "postgres";
     private String password = "0";
+
+    JTabbedPane tabbedPane = new JTabbedPane();
+
 
     public DBApplication(){
 
@@ -23,22 +30,27 @@ public class DBApplication extends JFrame{
 
         JMenuBar menuBar = new JMenuBar();
 
+        //file menu
         JMenu fileMenu = new JMenu("Файл");
         JMenuItem connectItem = new JMenuItem("Подключить базу данных");
-        JMenuItem disconnectItem = new JMenuItem("Отключиться от базы данных");
         JMenuItem settingsItem = new JMenuItem("Настройки подключения");
 
         fileMenu.add(connectItem);
-        fileMenu.add(disconnectItem);
         fileMenu.addSeparator();
         fileMenu.add(settingsItem);
 
         menuBar.add(fileMenu);
 
+        //operation menu
+
+        JMenuItem operationItem = new JMenuItem("Операций");
+
+        menuBar.add(operationItem);
+
         setJMenuBar(menuBar);
 
         //Создаем панель с вкладками
-        JTabbedPane tabbedPane = new JTabbedPane();
+
 
         //Добавляем вкладки
         JPanel panel1 = new JPanel();
@@ -68,6 +80,8 @@ public class DBApplication extends JFrame{
         //Добавляем панель с вкладками на форму
         getContentPane().add(tabbedPane);
 
+
+
         setVisible(true);
 
         //Подключение
@@ -83,6 +97,10 @@ public class DBApplication extends JFrame{
         //Настройка базы данных
         settingsItem.addActionListener(e -> {
             SettingDialog();
+        });
+
+        operationItem.addActionListener(e -> {
+            choiceTable();
         });
     }
 
@@ -144,27 +162,270 @@ public class DBApplication extends JFrame{
         }
     }
 
+    private void choiceTable(){
+        JButton customerButton = new JButton("Клиенты");
+        customerButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tableCustomer();
+            }
+        });
 
-    //Базовые действия с базой
-    private void insertData(String tableName, String[] values) throws SQLException{
 
-        try{
+        JButton documentButton = new JButton("Документы");
+        JButton docToServicesButton = new JButton("Документ-услуга");
+        JButton serviceButton = new JButton("Услуга");
+        JButton docToSaleButton = new JButton("Документ-скидка");
+        JButton salesButton = new JButton("Скидки");
+
+        JComponent[] inputs = new JComponent[] {
+                new JLabel("Выберите таблицу"),
+                customerButton,
+                documentButton,
+                docToServicesButton,
+                serviceButton,
+                docToSaleButton,
+                salesButton
+
+
+        };
+
+        int result = JOptionPane.showConfirmDialog(null, inputs, "Выбор таблицы", JOptionPane.OK_CANCEL_OPTION);
+
+    }
+
+    private void tableCustomer(){
+        String tableName = "customer";
+        operations(tableName);
+        refreshTable();
+
+
+    }
+
+    private void tableDocuments(){
+
+    }
+    private void tableDocToService(){
+
+    }
+    private void tableServices(){
+
+    }
+    private void tableDocToSales(){
+
+    }
+    private void tableSale(){
+
+    }
+
+
+    private void operations(String tableName){
+        JButton insert = new JButton("Вставка");
+        insert.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                insertRecord(tableName);
+            }
+        });
+
+
+        JButton update = new JButton("Обновить");
+        update.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                JTextField id = new JTextField();
+
+                JComponent[] inputs = new JComponent[]{
+                        new JLabel("Введите код:"),
+                        id
+                };
+
+                int result = JOptionPane.showConfirmDialog(null, inputs, "Код", JOptionPane.OK_CANCEL_OPTION);
+
+                int idInt = Integer.parseInt(id.getText());
+                updateRecord(tableName, idInt);
+            }
+        });
+
+        JButton delete = new JButton("Удалить");
+        delete.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                deleteRecord(tableName);
+            }
+        });
+
+        JComponent[] inputs = new JComponent[] {
+                new JLabel("Выберите операцию"),
+                insert,
+                update,
+                delete
+        };
+
+        int result = JOptionPane.showConfirmDialog(null, inputs, "Выбор операций", JOptionPane.OK_CANCEL_OPTION);
+    }
+
+    //Operation
+    private void insertRecord(String tableName) {
+        try {
             DBConnection dbConnection = new DBConnection(url, user, password);
             Connection connection = dbConnection.getConnection();
-
-            String query = "Insert into " + tableName + "values (" + String.join(",", values ) + ")";
             Statement statement = connection.createStatement();
-            int rowsInserted = statement.executeUpdate(query);
 
-            if (rowsInserted > 0) {
-                JOptionPane.showMessageDialog(this, "Успех");
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName + " LIMIT 0");
+
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            List<Object> values = new ArrayList<>();
+
+            for (int i = 1; i <= columnCount; i++) {
+                String columnName = metaData.getColumnName(i);
+                String inputValue = JOptionPane.showInputDialog("Введите значение для столбца " + columnName);
+                values.add(inputValue);
             }
 
+            String insertQuery = "INSERT INTO " + tableName + " VALUES (";
+            for (int i = 0; i < columnCount; i++) {
+                insertQuery += "?,";
+            }
+            insertQuery = insertQuery.substring(0, insertQuery.length() - 1);
+            insertQuery += ")";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(insertQuery);
+            for (int i = 0; i < values.size(); i++) {
+                Object value = values.get(i);
+                if (value instanceof String && metaData.getColumnType(i + 1) == Types.BIGINT) {
+                    preparedStatement.setLong(i + 1, Long.parseLong((String)value));
+                } else {
+                    preparedStatement.setObject(i + 1, value);
+                }
+            }
+
+            preparedStatement.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Запись успешно добавлена в таблицу " + tableName);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Ошибка при добавлении записи: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
         }
-        catch (SQLException ex)
-        {
-            JOptionPane.showConfirmDialog(this, "Ошибка выполнения: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+    }
+    private void updateRecord(String tableName, int recordId) {
+        try {
+            DBConnection dbConnection = new DBConnection(url, user, password);
+            Connection connection = dbConnection.getConnection();
+            Statement statement = connection.createStatement();
+
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName + " WHERE id_customer = " + recordId);
+            resultSet.next(); // Move the ResultSet to the first row
+
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            List<Object> values = new ArrayList<>();
+
+            for (int i = 1; i <= columnCount; i++) {
+                String columnName = metaData.getColumnName(i);
+                if (i == 1) { // First column
+                    values.add(resultSet.getObject(columnName));
+                } else {
+                    String inputValue = JOptionPane.showInputDialog("Введите новое значение для столбца " + columnName);
+                    values.add(inputValue);
+                }
+            }
+
+            String updateQuery = "UPDATE " + tableName + " SET ";
+            for (int i = 2; i <= columnCount; i++) { // Start from 2 to skip the first column
+                String columnName = metaData.getColumnName(i);
+                updateQuery += columnName + " = ?, ";
+            }
+            updateQuery = updateQuery.substring(0, updateQuery.length() - 2);
+            updateQuery += " WHERE id_customer = " + recordId;
+
+            PreparedStatement preparedStatement = connection.prepareStatement(updateQuery);
+            for (int i = 1; i < values.size(); i++) { // Start from 1 to skip the first column
+                Object value = values.get(i);
+                if (value instanceof String && metaData.getColumnType(i + 1) == Types.BIGINT) {
+                    preparedStatement.setLong(i, Long.parseLong((String)value));
+                } else {
+                    preparedStatement.setObject(i, value);
+                }
+            }
+
+            preparedStatement.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Запись успешно обновлена в таблице " + tableName);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Ошибка при обновлении записи: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    private void deleteRecord(String tableName) {
+        try {
+            DBConnection dbConnection = new DBConnection(url, user, password);
+            Connection connection = dbConnection.getConnection();
+            Statement statement = connection.createStatement();
+
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName + " LIMIT 0");
+
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            String columnName = metaData.getColumnName(1); // Получаем название первого столбца
+
+            String inputValue = JOptionPane.showInputDialog("Введите значение для столбца " + columnName);
+
+            String deleteQuery = "DELETE FROM " + tableName + " WHERE " + columnName + " = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery);
+            preparedStatement.setLong(1, Long.parseLong(inputValue));
+
+            int affectedRows = preparedStatement.executeUpdate();
+            if (affectedRows > 0) {
+                JOptionPane.showMessageDialog(this, "Запись успешно удалена из таблицы " + tableName);
+            } else {
+                JOptionPane.showMessageDialog(this, "Не удалось найти запись для удаления", "Ошибка", JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Ошибка при удалении записи: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String getQueryForTabIndex(int tabIndex) {
+        String query = null;
+        switch (tabIndex) {
+            case 0:
+                query = "SELECT * FROM customer";
+                break;
+            case 1:
+                query = "SELECT * FROM documents";
+                break;
+            case 2:
+                query = "SELECT * FROM allservicesindoc";
+                break;
+            case 3:
+                query = "SELECT * FROM service";
+                break;
+            case 4:
+                query = "SELECT * FROM allsaleindoc";
+                break;
+            case 5:
+                query = "SELECT * FROM sale";
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid tab index: " + tabIndex);
+        }
+        return query;
+    }
+    private void refreshTable() {
+        int tabIndex = tabbedPane.getSelectedIndex();
+        JPanel panel = (JPanel) tabbedPane.getComponentAt(tabIndex);
+        String query = getQueryForTabIndex(tabIndex);
+
+        //Удаляем предыдущую таблицу из панели
+        for (Component component : panel.getComponents()) {
+            if (component instanceof JScrollPane) {
+                panel.remove(component);
+                break;
+            }
         }
 
+        //Добавляем обновленную таблицу
+        addTableToPanel(panel, query);
     }
 }
