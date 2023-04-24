@@ -5,7 +5,11 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
+import java.math.BigDecimal;
 import java.sql.*;
+import java.sql.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
@@ -171,12 +175,46 @@ public class DBApplication extends JFrame{
             }
         });
 
-
         JButton documentButton = new JButton("Документы");
+        documentButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tableDocuments();
+            }
+        });
+
         JButton docToServicesButton = new JButton("Документ-услуга");
+        docToServicesButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tableDocToService();
+            }
+        });
+
         JButton serviceButton = new JButton("Услуга");
+        serviceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tableServices();
+            }
+        });
+
         JButton docToSaleButton = new JButton("Документ-скидка");
+        docToSaleButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tableDocToSales();
+            }
+        });
+
         JButton salesButton = new JButton("Скидки");
+        salesButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tableSale();
+            }
+        });
+
 
         JComponent[] inputs = new JComponent[] {
                 new JLabel("Выберите таблицу"),
@@ -196,17 +234,21 @@ public class DBApplication extends JFrame{
 
     private void tableCustomer(){
         String tableName = "customer";
-        operations(tableName);
+        String primaryKeyColumnName = "id_customer";
+        operations(tableName, primaryKeyColumnName);
         refreshTable();
-
-
     }
 
     private void tableDocuments(){
-
+        String tableName = "documents";
+        String primaryKeyColumnName = "id_doc";
+        operations(tableName, primaryKeyColumnName);
+        refreshTable();
     }
     private void tableDocToService(){
-
+        String tableName = "doctoservices";
+        //operations(tableName);
+        refreshTable();
     }
     private void tableServices(){
 
@@ -219,7 +261,7 @@ public class DBApplication extends JFrame{
     }
 
 
-    private void operations(String tableName){
+    private void operations(String tableName, String primaryKeyColumnName){
         JButton insert = new JButton("Вставка");
         insert.addActionListener(new ActionListener() {
             @Override
@@ -244,7 +286,7 @@ public class DBApplication extends JFrame{
                 int result = JOptionPane.showConfirmDialog(null, inputs, "Код", JOptionPane.OK_CANCEL_OPTION);
 
                 int idInt = Integer.parseInt(id.getText());
-                updateRecord(tableName, idInt);
+                updateRecord(tableName, primaryKeyColumnName ,idInt);
             }
         });
 
@@ -297,6 +339,14 @@ public class DBApplication extends JFrame{
                 Object value = values.get(i);
                 if (value instanceof String && metaData.getColumnType(i + 1) == Types.BIGINT) {
                     preparedStatement.setLong(i + 1, Long.parseLong((String)value));
+                } else if (value instanceof String && metaData.getColumnType(i + 1) == Types.DATE) {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    java.util.Date parsedDate = dateFormat.parse((String)value);
+                    java.sql.Date sqlDate = new java.sql.Date(parsedDate.getTime());
+                    preparedStatement.setDate(i + 1, sqlDate);
+                } else if (value instanceof String && metaData.getColumnType(i + 1) == Types.NUMERIC) {
+                    BigDecimal decimalValue = new BigDecimal((String) value);
+                    preparedStatement.setBigDecimal(i + 1, decimalValue);
                 } else {
                     preparedStatement.setObject(i + 1, value);
                 }
@@ -306,15 +356,16 @@ public class DBApplication extends JFrame{
             JOptionPane.showMessageDialog(this, "Запись успешно добавлена в таблицу " + tableName);
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "Ошибка при добавлении записи: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
         }
     }
-    private void updateRecord(String tableName, int recordId) {
+    private void updateRecord(String tableName, String primaryKeyColumnName, int recordId) {
         try {
             DBConnection dbConnection = new DBConnection(url, user, password);
             Connection connection = dbConnection.getConnection();
             Statement statement = connection.createStatement();
-
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName + " WHERE id_customer = " + recordId);
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName + " WHERE " + primaryKeyColumnName + " = " + recordId);
             resultSet.next(); // Move the ResultSet to the first row
 
             ResultSetMetaData metaData = resultSet.getMetaData();
@@ -323,30 +374,45 @@ public class DBApplication extends JFrame{
 
             for (int i = 1; i <= columnCount; i++) {
                 String columnName = metaData.getColumnName(i);
-                if (i == 1) { // First column
+                if (i == 1) { // Primary key column
                     values.add(resultSet.getObject(columnName));
                 } else {
                     String inputValue = JOptionPane.showInputDialog("Введите новое значение для столбца " + columnName);
-                    values.add(inputValue);
+                    Object value = null;
+                    // Convert input value to the correct data type
+                    switch (metaData.getColumnType(i)) {
+                        case Types.BIGINT:
+                            value = Long.parseLong(inputValue);
+                            break;
+                        case Types.DATE:
+                            value = Date.valueOf(inputValue);
+                            break;
+                        case Types.NUMERIC:
+                            value = Double.parseDouble(inputValue);
+                            break;
+                        case Types.VARCHAR:
+                            value = inputValue;
+                            break;
+                        default:
+                            JOptionPane.showMessageDialog(this, "Неизвестный тип данных для столбца " + columnName, "Ошибка", JOptionPane.ERROR_MESSAGE);
+                            return; // Exit the method if an unknown data type is encountered
+                    }
+                    values.add(value);
                 }
             }
 
             String updateQuery = "UPDATE " + tableName + " SET ";
-            for (int i = 2; i <= columnCount; i++) { // Start from 2 to skip the first column
+            for (int i = 2; i <= columnCount; i++) { // Start from 2 to skip the primary key column
                 String columnName = metaData.getColumnName(i);
                 updateQuery += columnName + " = ?, ";
             }
             updateQuery = updateQuery.substring(0, updateQuery.length() - 2);
-            updateQuery += " WHERE id_customer = " + recordId;
+            updateQuery += " WHERE " + primaryKeyColumnName + " = " + recordId;
 
             PreparedStatement preparedStatement = connection.prepareStatement(updateQuery);
-            for (int i = 1; i < values.size(); i++) { // Start from 1 to skip the first column
-                Object value = values.get(i);
-                if (value instanceof String && metaData.getColumnType(i + 1) == Types.BIGINT) {
-                    preparedStatement.setLong(i, Long.parseLong((String)value));
-                } else {
-                    preparedStatement.setObject(i, value);
-                }
+            for (int i = 2; i <= columnCount; i++) { // Start from 2 to skip the primary key column
+                Object value = values.get(i - 1);
+                preparedStatement.setObject(i - 1, value);
             }
 
             preparedStatement.executeUpdate();
@@ -428,4 +494,7 @@ public class DBApplication extends JFrame{
         //Добавляем обновленную таблицу
         addTableToPanel(panel, query);
     }
+
+
+
 }
