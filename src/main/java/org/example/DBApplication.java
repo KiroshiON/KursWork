@@ -1,11 +1,7 @@
 package org.example;
 
-import org.example.*;
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
-import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
 import java.text.ParseException;
@@ -91,7 +87,7 @@ public class DBApplication extends JFrame{
         //Подключение
         connectItem.addActionListener(e -> {
             try {
-                DBConnection dbConnection = new DBConnection(url, user, password);
+                new DBConnection(url, user, password);
 
             } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(this, "Ошибка подключения к базе данных: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
@@ -99,13 +95,9 @@ public class DBApplication extends JFrame{
         });
 
         //Настройка базы данных
-        settingsItem.addActionListener(e -> {
-            SettingDialog();
-        });
+        settingsItem.addActionListener(e -> SettingDialog());
 
-        operationItem.addActionListener(e -> {
-            choiceTable();
-        });
+        operationItem.addActionListener(e -> choiceTable());
     }
 
     private void SettingDialog(){
@@ -168,52 +160,22 @@ public class DBApplication extends JFrame{
 
     private void choiceTable(){
         JButton customerButton = new JButton("Клиенты");
-        customerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                tableCustomer();
-            }
-        });
+        customerButton.addActionListener(e -> tableCustomer());
 
         JButton documentButton = new JButton("Документы");
-        documentButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                tableDocuments();
-            }
-        });
+        documentButton.addActionListener(e -> tableDocuments());
 
         JButton docToServicesButton = new JButton("Документ-услуга");
-        docToServicesButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                tableDocToService();
-            }
-        });
+        docToServicesButton.addActionListener(e -> tableDocToService());
 
         JButton serviceButton = new JButton("Услуга");
-        serviceButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                tableServices();
-            }
-        });
+        serviceButton.addActionListener(e -> tableServices());
 
         JButton docToSaleButton = new JButton("Документ-скидка");
-        docToSaleButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                tableDocToSales();
-            }
-        });
+        docToSaleButton.addActionListener(e -> tableDocToSales());
 
         JButton salesButton = new JButton("Скидки");
-        salesButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                tableSale();
-            }
-        });
+        salesButton.addActionListener(e -> tableSale());
 
 
         JComponent[] inputs = new JComponent[] {
@@ -228,7 +190,7 @@ public class DBApplication extends JFrame{
 
         };
 
-        int result = JOptionPane.showConfirmDialog(null, inputs, "Выбор таблицы", JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane.showConfirmDialog(null, inputs, "Выбор таблицы", JOptionPane.OK_CANCEL_OPTION);
 
     }
 
@@ -251,52 +213,45 @@ public class DBApplication extends JFrame{
         refreshTable();
     }
     private void tableServices(){
-
+        String tableName = "service";
+        String primaryKeyColumnName = "id_service";
+        operations(tableName, primaryKeyColumnName);
+        refreshTable();
     }
     private void tableDocToSales(){
 
     }
     private void tableSale(){
-
+        String tableName = "sale";
+        String primaryKeyColumnName = "id_sale";
+        operations(tableName, primaryKeyColumnName);
+        refreshTable();
     }
 
 
     private void operations(String tableName, String primaryKeyColumnName){
         JButton insert = new JButton("Вставка");
-        insert.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                insertRecord(tableName);
-            }
-        });
+        insert.addActionListener(e -> insertRecord(tableName));
 
 
         JButton update = new JButton("Обновить");
-        update.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        update.addActionListener(e -> {
 
-                JTextField id = new JTextField();
+            JTextField id = new JTextField();
 
-                JComponent[] inputs = new JComponent[]{
-                        new JLabel("Введите код:"),
-                        id
-                };
+            JComponent[] inputs = new JComponent[]{
+                    new JLabel("Введите код:"),
+                    id
+            };
 
-                int result = JOptionPane.showConfirmDialog(null, inputs, "Код", JOptionPane.OK_CANCEL_OPTION);
+            JOptionPane.showConfirmDialog(null, inputs, "Код", JOptionPane.OK_CANCEL_OPTION);
 
-                int idInt = Integer.parseInt(id.getText());
-                updateRecord(tableName, primaryKeyColumnName ,idInt);
-            }
+            int idInt = Integer.parseInt(id.getText());
+            updateRecord(tableName, primaryKeyColumnName ,idInt);
         });
 
         JButton delete = new JButton("Удалить");
-        delete.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                deleteRecord(tableName);
-            }
-        });
+        delete.addActionListener(e -> deleteRecord(tableName));
 
         JComponent[] inputs = new JComponent[] {
                 new JLabel("Выберите операцию"),
@@ -305,7 +260,7 @@ public class DBApplication extends JFrame{
                 delete
         };
 
-        int result = JOptionPane.showConfirmDialog(null, inputs, "Выбор операций", JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane.showConfirmDialog(null, inputs, "Выбор операций", JOptionPane.OK_CANCEL_OPTION);
     }
 
     //Operation
@@ -324,7 +279,24 @@ public class DBApplication extends JFrame{
             for (int i = 1; i <= columnCount; i++) {
                 String columnName = metaData.getColumnName(i);
                 String inputValue = JOptionPane.showInputDialog("Введите значение для столбца " + columnName);
-                values.add(inputValue);
+                Object value = null;
+                // Convert input value to the correct data type
+                switch (metaData.getColumnType(i)) {
+                    case Types.BIGINT -> value = Long.parseLong(inputValue);
+                    case Types.DATE -> {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                        java.util.Date parsedDate = dateFormat.parse(inputValue);
+                        Date sqlDate = new Date(parsedDate.getTime());
+                        value = sqlDate;
+                    }
+                    case Types.NUMERIC, Types.DOUBLE -> value = Double.parseDouble(inputValue);
+                    case Types.VARCHAR -> value = inputValue;
+                    default -> {
+                        JOptionPane.showMessageDialog(this, "Неизвестный тип данных для столбца " + columnName, "Ошибка", JOptionPane.ERROR_MESSAGE);
+                        return; // Exit the method if an unknown data type is encountered
+                    }
+                }
+                values.add(value);
             }
 
             String insertQuery = "INSERT INTO " + tableName + " VALUES (";
@@ -337,19 +309,7 @@ public class DBApplication extends JFrame{
             PreparedStatement preparedStatement = connection.prepareStatement(insertQuery);
             for (int i = 0; i < values.size(); i++) {
                 Object value = values.get(i);
-                if (value instanceof String && metaData.getColumnType(i + 1) == Types.BIGINT) {
-                    preparedStatement.setLong(i + 1, Long.parseLong((String)value));
-                } else if (value instanceof String && metaData.getColumnType(i + 1) == Types.DATE) {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                    java.util.Date parsedDate = dateFormat.parse((String)value);
-                    java.sql.Date sqlDate = new java.sql.Date(parsedDate.getTime());
-                    preparedStatement.setDate(i + 1, sqlDate);
-                } else if (value instanceof String && metaData.getColumnType(i + 1) == Types.NUMERIC) {
-                    BigDecimal decimalValue = new BigDecimal((String) value);
-                    preparedStatement.setBigDecimal(i + 1, decimalValue);
-                } else {
-                    preparedStatement.setObject(i + 1, value);
-                }
+                preparedStatement.setObject(i + 1, value);
             }
 
             preparedStatement.executeUpdate();
@@ -381,21 +341,14 @@ public class DBApplication extends JFrame{
                     Object value = null;
                     // Convert input value to the correct data type
                     switch (metaData.getColumnType(i)) {
-                        case Types.BIGINT:
-                            value = Long.parseLong(inputValue);
-                            break;
-                        case Types.DATE:
-                            value = Date.valueOf(inputValue);
-                            break;
-                        case Types.NUMERIC:
-                            value = Double.parseDouble(inputValue);
-                            break;
-                        case Types.VARCHAR:
-                            value = inputValue;
-                            break;
-                        default:
+                        case Types.BIGINT -> value = Long.parseLong(inputValue);
+                        case Types.DATE -> value = Date.valueOf(inputValue);
+                        case Types.NUMERIC, Types.DOUBLE -> value = Double.parseDouble(inputValue);
+                        case Types.VARCHAR -> value = inputValue;
+                        default -> {
                             JOptionPane.showMessageDialog(this, "Неизвестный тип данных для столбца " + columnName, "Ошибка", JOptionPane.ERROR_MESSAGE);
                             return; // Exit the method if an unknown data type is encountered
+                        }
                     }
                     values.add(value);
                 }
@@ -430,7 +383,7 @@ public class DBApplication extends JFrame{
             ResultSet resultSet = statement.executeQuery("SELECT * FROM " + tableName + " LIMIT 0");
 
             ResultSetMetaData metaData = resultSet.getMetaData();
-            int columnCount = metaData.getColumnCount();
+            metaData.getColumnCount();
 
             String columnName = metaData.getColumnName(1); // Получаем название первого столбца
 
@@ -453,29 +406,15 @@ public class DBApplication extends JFrame{
     }
 
     private String getQueryForTabIndex(int tabIndex) {
-        String query = null;
-        switch (tabIndex) {
-            case 0:
-                query = "SELECT * FROM customer";
-                break;
-            case 1:
-                query = "SELECT * FROM documents";
-                break;
-            case 2:
-                query = "SELECT * FROM allservicesindoc";
-                break;
-            case 3:
-                query = "SELECT * FROM service";
-                break;
-            case 4:
-                query = "SELECT * FROM allsaleindoc";
-                break;
-            case 5:
-                query = "SELECT * FROM sale";
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid tab index: " + tabIndex);
-        }
+        String query = switch (tabIndex) {
+            case 0 -> "SELECT * FROM customer";
+            case 1 -> "SELECT * FROM documents";
+            case 2 -> "SELECT * FROM allservicesindoc";
+            case 3 -> "SELECT * FROM service";
+            case 4 -> "SELECT * FROM allsaleindoc";
+            case 5 -> "SELECT * FROM sale";
+            default -> throw new IllegalArgumentException("Invalid tab index: " + tabIndex);
+        };
         return query;
     }
     private void refreshTable() {
