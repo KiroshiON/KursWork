@@ -32,12 +32,14 @@ public class DBApplication extends JFrame{
 
         //file menu
         JMenu fileMenu = new JMenu("Файл");
-        JMenuItem connectItem = new JMenuItem("Подключить базу данных");
-        JMenuItem settingsItem = new JMenuItem("Настройки подключения");
+        JMenuItem connectItem = new JMenuItem("Подключить БД");
+        JMenuItem settingsItem = new JMenuItem("Настройки подключения БД");
+        JMenuItem disconnectItem = new JMenuItem("Отключенить БД");
 
         fileMenu.add(connectItem);
         fileMenu.addSeparator();
         fileMenu.add(settingsItem);
+        fileMenu.add(disconnectItem);
 
         menuBar.add(fileMenu);
 
@@ -49,10 +51,7 @@ public class DBApplication extends JFrame{
 
         setJMenuBar(menuBar);
 
-        //Создаем панель с вкладками
-
-
-        //Добавляем вкладки
+        //add panel to tables
         JPanel panel1 = new JPanel();
         tabbedPane.addTab("Клиенты", panel1);
         addTableToPanel(panel1, "SELECT * FROM customer");
@@ -77,14 +76,11 @@ public class DBApplication extends JFrame{
         tabbedPane.addTab("Скидки", panel6);
         addTableToPanel(panel6, "SELECT * FROM sale");
 
-        //Добавляем панель с вкладками на форму
         getContentPane().add(tabbedPane);
-
-
 
         setVisible(true);
 
-        //Подключение
+        //connect
         connectItem.addActionListener(e -> {
             try {
                 new DBConnection(url, user, password);
@@ -94,8 +90,11 @@ public class DBApplication extends JFrame{
             }
         });
 
-        //Настройка базы данных
+        //setting
         settingsItem.addActionListener(e -> SettingDialog());
+
+        //disconnect
+        disconnectItem.addActionListener(e -> DisconnectDB());
 
         operationItem.addActionListener(e -> choiceTable());
     }
@@ -435,5 +434,7 @@ public class DBApplication extends JFrame{
     }
 
 
+    private void DisconnectDB(){
 
+    }
 }
