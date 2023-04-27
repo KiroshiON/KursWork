@@ -193,6 +193,7 @@ public class DBApplication extends JFrame{
         operations(tableName, primaryKeyColumnName);
         refreshTable();
     }
+
     private void tableSale(){
         String tableName = "sale";
         String primaryKeyColumnName = "id_sale";
