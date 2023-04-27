@@ -68,9 +68,6 @@ public class DBApplication extends JFrame{
 
         setVisible(true);
 
-        //connect
-
-
         operationItem.addActionListener(e -> choiceTable());
     }
 
@@ -158,17 +155,17 @@ public class DBApplication extends JFrame{
                 salesButton
         };
 
-        JOptionPane.showMessageDialog(null, inputs, "Выбор таблицы", JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane.showMessageDialog(null, inputs, "Выбор таблицы", JOptionPane.WARNING_MESSAGE);
 
     }
 
+    //Основные данные таблицы
     private void tableCustomer(){
         String tableName = "customer";
         String primaryKeyColumnName = "id_customer";
         operations(tableName, primaryKeyColumnName);
         refreshTable();
     }
-
     private void tableDocuments(){
         String tableName = "documents";
         String primaryKeyColumnName = "id_doc";
@@ -193,7 +190,6 @@ public class DBApplication extends JFrame{
         operations(tableName, primaryKeyColumnName);
         refreshTable();
     }
-
     private void tableSale(){
         String tableName = "sale";
         String primaryKeyColumnName = "id_sale";
@@ -201,7 +197,7 @@ public class DBApplication extends JFrame{
         refreshTable();
     }
 
-
+    //меню операции
     private void operations(String tableName, String primaryKeyColumnName){
         JButton insert = new JButton("Вставка");
         insert.addActionListener(e -> {
@@ -226,17 +222,27 @@ public class DBApplication extends JFrame{
             deleteRecord(tableName);
         });
 
+        JButton search = new JButton("Поиск по ID");
+        search.addActionListener(e -> {
+            try {
+                searchRecord(tableName, primaryKeyColumnName);
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
         JComponent[] inputs = new JComponent[] {
                 new JLabel("Выберите операцию"),
                 insert,
                 update,
-                delete
+                delete,
+                search
         };
 
-        JOptionPane.showMessageDialog(null, inputs, "Выбор операций для " + tableName, JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane.showMessageDialog(null, inputs, "Выбор операций для " + tableName, JOptionPane.WARNING_MESSAGE);
     }
 
-    //Operation
+    //Операции
     private void insertRecord(String tableName) {
         try {
             DBConnection dbConnection = new DBConnection(url, user, password);
@@ -359,7 +365,6 @@ public class DBApplication extends JFrame{
             JOptionPane.showMessageDialog(this, "Ошибка при обновлении записи: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
         }
     }
-
     private void specialUpdateRecord(String tableName) {
         try {
             String primaryKey1ColumnName = "id_doc";
@@ -469,7 +474,51 @@ public class DBApplication extends JFrame{
             JOptionPane.showMessageDialog(this, "Ошибка при удалении записи: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
         }
     }
+    private void searchRecord(String tableName, String primaryKeyColumnName) throws SQLException {
+        JTextField id = new JTextField();
 
+        JComponent[] inputs = new JComponent[]{
+                new JLabel("Введите код:"),
+                id
+        };
+
+        JOptionPane.showConfirmDialog(null, inputs, "Код", JOptionPane.OK_CANCEL_OPTION);
+
+        int recordId = Integer.parseInt(id.getText());
+
+        DBConnection dbConnection = new DBConnection(url, user, password);
+        Connection connection = dbConnection.getConnection();
+
+        Statement statement = connection.createStatement();
+
+        // Выборка записи с заданным primary key
+        String query = "SELECT * FROM " + tableName + " WHERE " + primaryKeyColumnName + " = " + recordId;
+        ResultSet resultSet = statement.executeQuery(query);
+
+        // Создание модели таблицы с одной строкой результата
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        String[] columnNames = new String[columnCount];
+        for (int i = 1; i <= columnCount; i++) {
+            columnNames[i - 1] = metaData.getColumnName(i);
+        }
+        Object[][] data = new Object[1][columnCount];
+        if (resultSet.next()) {
+            for (int i = 1; i <= columnCount; i++) {
+                data[0][i - 1] = resultSet.getObject(i);
+            }
+        }
+        JTable table = new JTable(data, columnNames);
+
+        // Выделение строки в таблице
+        table.getSelectionModel().setSelectionInterval(0, 0);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        JOptionPane.showMessageDialog(null, scrollPane, "Результат поиска", JOptionPane.PLAIN_MESSAGE);
+    }
+
+    //Данные таблиц
     private String getQueryForTabIndex(int tabIndex) {
         String query = switch (tabIndex) {
             case 0 -> "SELECT * FROM customer";
@@ -482,6 +531,8 @@ public class DBApplication extends JFrame{
         };
         return query;
     }
+
+    //Обновление таблицы (Показывает уже измененную таблицу)
     private void refreshTable() {
         int tabIndex = tabbedPane.getSelectedIndex();
         JPanel panel = (JPanel) tabbedPane.getComponentAt(tabIndex);
@@ -498,5 +549,6 @@ public class DBApplication extends JFrame{
         //Добавляем обновленную таблицу
         addTableToPanel(panel, query);
     }
+
 
 }
