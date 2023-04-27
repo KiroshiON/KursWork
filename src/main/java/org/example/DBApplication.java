@@ -19,7 +19,8 @@ public class DBApplication extends JFrame{
 
     JTabbedPane tabbedPane = new JTabbedPane();
 
-
+    String SPECIAL_SALE_TABLE = "allsaleindoc";
+    String SPECIAL_SERVICE_TABLE = "allservicesindoc";
     public DBApplication(){
 
         setTitle("DataBase");
@@ -29,19 +30,6 @@ public class DBApplication extends JFrame{
         setBackground(Color.CYAN);
 
         JMenuBar menuBar = new JMenuBar();
-
-        //file menu
-        JMenu fileMenu = new JMenu("Файл");
-        JMenuItem connectItem = new JMenuItem("Подключить БД");
-        JMenuItem settingsItem = new JMenuItem("Настройки подключения БД");
-        JMenuItem disconnectItem = new JMenuItem("Отключенить БД");
-
-        fileMenu.add(connectItem);
-        fileMenu.addSeparator();
-        fileMenu.add(settingsItem);
-        fileMenu.add(disconnectItem);
-
-        menuBar.add(fileMenu);
 
         //operation menu
 
@@ -81,47 +69,12 @@ public class DBApplication extends JFrame{
         setVisible(true);
 
         //connect
-        connectItem.addActionListener(e -> {
-            try {
-                new DBConnection(url, user, password);
 
-            } catch (SQLException ex) {
-                JOptionPane.showMessageDialog(this, "Ошибка подключения к базе данных: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        //setting
-        settingsItem.addActionListener(e -> SettingDialog());
-
-        //disconnect
-        disconnectItem.addActionListener(e -> DisconnectDB());
 
         operationItem.addActionListener(e -> choiceTable());
     }
 
-    private void SettingDialog(){
-        JTextField urlField = new JTextField(url);
-        JTextField userField = new JTextField(user);
-        JTextField passwordField = new JTextField(password);
 
-        JComponent[] inputs = new JComponent[] {
-                new JLabel("URL:"),
-                urlField,
-                new JLabel("Пользователь:"),
-                userField,
-                new JLabel("Пароль:"),
-                passwordField
-        };
-
-        int result = JOptionPane.showConfirmDialog(null, inputs, "Данные подключения", JOptionPane.OK_CANCEL_OPTION);
-
-        if (result == JOptionPane.OK_OPTION) {
-            url = urlField.getText();
-            user = userField.getText();
-            password = passwordField.getText();
-        }
-
-    }
     private void addTableToPanel(JPanel panel, String query){
         try {
             DBConnection dbConnection = new DBConnection(url, user, password);
@@ -159,22 +112,40 @@ public class DBApplication extends JFrame{
 
     private void choiceTable(){
         JButton customerButton = new JButton("Клиенты");
-        customerButton.addActionListener(e -> tableCustomer());
+        customerButton.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            tableCustomer();
+        });
 
         JButton documentButton = new JButton("Документы");
-        documentButton.addActionListener(e -> tableDocuments());
+        documentButton.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            tableDocuments();
+        });
 
         JButton docToServicesButton = new JButton("Документ-услуга");
-        docToServicesButton.addActionListener(e -> tableDocToService());
+        docToServicesButton.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            tableDocToService();
+        });
 
         JButton serviceButton = new JButton("Услуга");
-        serviceButton.addActionListener(e -> tableServices());
+        serviceButton.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            tableServices();
+        });
 
         JButton docToSaleButton = new JButton("Документ-скидка");
-        docToSaleButton.addActionListener(e -> tableDocToSales());
+        docToSaleButton.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            tableDocToSales();
+        });
 
         JButton salesButton = new JButton("Скидки");
-        salesButton.addActionListener(e -> tableSale());
+        salesButton.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            tableSale();
+        });
 
 
         JComponent[] inputs = new JComponent[] {
@@ -185,11 +156,9 @@ public class DBApplication extends JFrame{
                 serviceButton,
                 docToSaleButton,
                 salesButton
-
-
         };
 
-        JOptionPane.showConfirmDialog(null, inputs, "Выбор таблицы", JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane.showMessageDialog(null, inputs, "Выбор таблицы", JOptionPane.OK_CANCEL_OPTION);
 
     }
 
@@ -207,8 +176,9 @@ public class DBApplication extends JFrame{
         refreshTable();
     }
     private void tableDocToService(){
-        String tableName = "doctoservices";
-        //operations(tableName);
+        String tableName = "allservicesindoc";
+        String primaryKeyColumnName = "id_doc";
+        operations(tableName, primaryKeyColumnName);
         refreshTable();
     }
     private void tableServices(){
@@ -218,7 +188,10 @@ public class DBApplication extends JFrame{
         refreshTable();
     }
     private void tableDocToSales(){
-
+        String tableName = "allsaleindoc";
+        String primaryKeyColumnName = "id_doc";
+        operations(tableName, primaryKeyColumnName);
+        refreshTable();
     }
     private void tableSale(){
         String tableName = "sale";
@@ -230,27 +203,27 @@ public class DBApplication extends JFrame{
 
     private void operations(String tableName, String primaryKeyColumnName){
         JButton insert = new JButton("Вставка");
-        insert.addActionListener(e -> insertRecord(tableName));
+        insert.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            insertRecord(tableName);
+        });
 
 
         JButton update = new JButton("Обновить");
         update.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
 
-            JTextField id = new JTextField();
+            if(tableName.equals(SPECIAL_SALE_TABLE) || tableName.equals(SPECIAL_SERVICE_TABLE)){
+                specialUpdateRecord(tableName);
+            }else{updateRecord(tableName, primaryKeyColumnName);}
 
-            JComponent[] inputs = new JComponent[]{
-                    new JLabel("Введите код:"),
-                    id
-            };
-
-            JOptionPane.showConfirmDialog(null, inputs, "Код", JOptionPane.OK_CANCEL_OPTION);
-
-            int idInt = Integer.parseInt(id.getText());
-            updateRecord(tableName, primaryKeyColumnName ,idInt);
         });
 
         JButton delete = new JButton("Удалить");
-        delete.addActionListener(e -> deleteRecord(tableName));
+        delete.addActionListener(e -> {
+            ((JDialog)((JButton)e.getSource()).getTopLevelAncestor()).dispose();
+            deleteRecord(tableName);
+        });
 
         JComponent[] inputs = new JComponent[] {
                 new JLabel("Выберите операцию"),
@@ -259,7 +232,7 @@ public class DBApplication extends JFrame{
                 delete
         };
 
-        JOptionPane.showConfirmDialog(null, inputs, "Выбор операций", JOptionPane.OK_CANCEL_OPTION);
+        JOptionPane.showMessageDialog(null, inputs, "Выбор операций для " + tableName, JOptionPane.OK_CANCEL_OPTION);
     }
 
     //Operation
@@ -319,8 +292,20 @@ public class DBApplication extends JFrame{
             throw new RuntimeException(e);
         }
     }
-    private void updateRecord(String tableName, String primaryKeyColumnName, int recordId) {
+    private void updateRecord(String tableName, String primaryKeyColumnName) {
         try {
+            JTextField id = new JTextField();
+
+            JComponent[] inputs = new JComponent[]{
+                    new JLabel("Введите код:"),
+                    id
+            };
+
+            JOptionPane.showConfirmDialog(null, inputs, "Код", JOptionPane.OK_CANCEL_OPTION);
+
+            int recordId = Integer.parseInt(id.getText());
+
+
             DBConnection dbConnection = new DBConnection(url, user, password);
             Connection connection = dbConnection.getConnection();
             Statement statement = connection.createStatement();
@@ -373,6 +358,62 @@ public class DBApplication extends JFrame{
             JOptionPane.showMessageDialog(this, "Ошибка при обновлении записи: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    private void specialUpdateRecord(String tableName) {
+        try {
+            String primaryKey1ColumnName = "id_doc";
+            String primaryKey2ColumnName = null;
+            if (tableName.equals(SPECIAL_SALE_TABLE)){
+                primaryKey2ColumnName = "id_sale";
+            } else {
+                primaryKey2ColumnName = "id_service";
+            }
+
+            String query = "SELECT * FROM " + tableName + " WHERE " + primaryKey1ColumnName + " = ? AND " + primaryKey2ColumnName + " = ?";
+            JComponent[] inputs = new JComponent[] {
+                    new JLabel("Введите id_doc:"),
+                    new JTextField(),
+                    new JLabel("Введите id_service (id_sale):"),
+                    new JTextField()
+            };
+            int result = JOptionPane.showConfirmDialog(null, inputs, "Введите значения первичных ключей", JOptionPane.OK_CANCEL_OPTION);
+            if (result == JOptionPane.OK_OPTION) {
+                long primaryKey1Value = Long.parseLong(((JTextField)inputs[1]).getText());
+                long primaryKey2Value = Long.parseLong(((JTextField)inputs[3]).getText());
+                JComponent[] updateInputs = new JComponent[] {
+                        new JLabel("Введите новое значение id_doc:"),
+                        new JTextField(),
+                        new JLabel("Введите новое значение id_service (id_sale):"),
+                        new JTextField()
+                };
+                int updateResult = JOptionPane.showConfirmDialog(null, updateInputs, "Новые значения", JOptionPane.OK_CANCEL_OPTION);
+                if (updateResult == JOptionPane.OK_OPTION) {
+                    long newPrimaryKey1Value = Long.parseLong(((JTextField)updateInputs[1]).getText());
+                    long newPrimaryKey2Value = Long.parseLong(((JTextField)updateInputs[3]).getText());
+                    DBConnection dbConnection = new DBConnection(url, user, password);
+                    Connection connection = dbConnection.getConnection();
+                    PreparedStatement selectStatement = connection.prepareStatement(query);
+                    selectStatement.setLong(1, primaryKey1Value);
+                    selectStatement.setLong(2, primaryKey2Value);
+                    ResultSet resultSet = selectStatement.executeQuery();
+                    if (resultSet.next()) {
+                        String updateQuery = "UPDATE " + tableName + " SET " + primaryKey1ColumnName + " = ?, " + primaryKey2ColumnName + " = ? WHERE " + primaryKey1ColumnName + " = ? AND " + primaryKey2ColumnName + " = ?";
+                        PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
+                        updateStatement.setLong(1, newPrimaryKey1Value);
+                        updateStatement.setLong(2, newPrimaryKey2Value);
+                        updateStatement.setLong(3, primaryKey1Value);
+                        updateStatement.setLong(4, primaryKey2Value);
+                        updateStatement.executeUpdate();
+                        JOptionPane.showMessageDialog(null, "Данные успешно обновлены в таблице " + tableName);
+                    } else {
+                        JOptionPane.showMessageDialog(null, "Запись с такими значениями первичных ключей не найдена в таблице " + tableName);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "Ошибка при обновлении данных: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
+    }
     private void deleteRecord(String tableName) {
         try {
             DBConnection dbConnection = new DBConnection(url, user, password);
@@ -384,19 +425,43 @@ public class DBApplication extends JFrame{
             ResultSetMetaData metaData = resultSet.getMetaData();
             metaData.getColumnCount();
 
+            String inputValue = "";
+            String deleteQuery = "";
+
             String columnName = metaData.getColumnName(1); // Получаем название первого столбца
+            if (tableName.equals("allservicesindoc") || tableName.equals("allsaleindoc")) {
+                String secondColumnName = metaData.getColumnName(2);
 
-            String inputValue = JOptionPane.showInputDialog("Введите значение для столбца " + columnName);
+                int firstInputValue = Integer.parseInt(JOptionPane.showInputDialog("Введите значение для столбца " + columnName));
+                int secondInputValue = Integer.parseInt(JOptionPane.showInputDialog("Введите значение для столбца " + secondColumnName));
 
-            String deleteQuery = "DELETE FROM " + tableName + " WHERE " + columnName + " = ?";
-            PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery);
-            preparedStatement.setLong(1, Long.parseLong(inputValue));
+                deleteQuery = "DELETE FROM " + tableName + " WHERE " + columnName + " = ? and " + secondColumnName + " = ?";
 
-            int affectedRows = preparedStatement.executeUpdate();
-            if (affectedRows > 0) {
-                JOptionPane.showMessageDialog(this, "Запись успешно удалена из таблицы " + tableName);
+                PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery);
+                preparedStatement.setInt(1, firstInputValue);
+                preparedStatement.setInt(2, secondInputValue);
+
+                int affectedRows = preparedStatement.executeUpdate();
+                if (affectedRows > 0) {
+                    JOptionPane.showMessageDialog(this, "Запись успешно удалена из таблицы " + tableName);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Не удалось найти запись для удаления", "Ошибка", JOptionPane.ERROR_MESSAGE);
+                }
+
             } else {
-                JOptionPane.showMessageDialog(this, "Не удалось найти запись для удаления", "Ошибка", JOptionPane.ERROR_MESSAGE);
+                inputValue = JOptionPane.showInputDialog("Введите значение для столбца " + columnName);
+
+                deleteQuery = "DELETE FROM " + tableName + " WHERE " + columnName + " = ?";
+
+                PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery);
+                preparedStatement.setLong(1, Long.parseLong(inputValue));
+
+                int affectedRows = preparedStatement.executeUpdate();
+                if (affectedRows > 0) {
+                    JOptionPane.showMessageDialog(this, "Запись успешно удалена из таблицы " + tableName);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Не удалось найти запись для удаления", "Ошибка", JOptionPane.ERROR_MESSAGE);
+                }
             }
 
         } catch (SQLException ex) {
@@ -433,8 +498,4 @@ public class DBApplication extends JFrame{
         addTableToPanel(panel, query);
     }
 
-
-    private void DisconnectDB(){
-
-    }
 }
