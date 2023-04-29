@@ -2,6 +2,7 @@ package org.example;
 
 import javax.swing.*;
 import java.awt.*;
+import java.math.BigInteger;
 import java.sql.*;
 import java.sql.Date;
 import java.text.ParseException;
@@ -34,8 +35,10 @@ public class DBApplication extends JFrame{
         //operation menu
 
         JMenuItem operationItem = new JMenuItem("Операций");
+        JMenuItem procedureItem = new JMenuItem("Обновления клиента");
 
         menuBar.add(operationItem);
+        menuBar.add(procedureItem);
 
         setJMenuBar(menuBar);
 
@@ -69,6 +72,10 @@ public class DBApplication extends JFrame{
         setVisible(true);
 
         operationItem.addActionListener(e -> choiceTable());
+        procedureItem.addActionListener(e -> {
+            procedureUpd();
+            refreshTable();
+        });
     }
 
 
@@ -516,6 +523,36 @@ public class DBApplication extends JFrame{
         JScrollPane scrollPane = new JScrollPane(table);
 
         JOptionPane.showMessageDialog(null, scrollPane, "Результат поиска", JOptionPane.PLAIN_MESSAGE);
+    }
+
+    private void procedureUpd() {
+        String id_customer_str = JOptionPane.showInputDialog("Введите id клиента:");
+        if (id_customer_str == null || id_customer_str.isEmpty()) {
+            return; // пользователь отменил ввод или не ввел значение
+        }
+        int id_customer = Integer.parseInt(id_customer_str);
+        String surname = JOptionPane.showInputDialog("Введите фамилию:");
+        String forename = JOptionPane.showInputDialog("Введите имя:");
+        String patronymic = JOptionPane.showInputDialog("Введите отчество:");
+
+        try {
+            DBConnection dbConnection = new DBConnection(url, user, password);
+            Connection connection = dbConnection.getConnection();
+
+            String sql = "call update_customer(?, ?, ?, ?)";
+            CallableStatement statement = connection.prepareCall(sql);
+            statement.setInt(1, id_customer);
+            statement.setString(2, surname);
+            statement.setString(3, forename);
+            statement.setString(4, patronymic);
+
+            statement.execute();
+
+            JOptionPane.showMessageDialog(this, "Данные клиента успешно изменены");
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Ошибка при изменении данных клиента: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     //Данные таблиц
